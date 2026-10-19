@@ -9,6 +9,25 @@ from coe_osd import Osd
 
 
 class OsdTests(unittest.TestCase):
+    def setUp(self):
+        # Unit tests must not depend on Voxtype being installed on the host.
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.binary = Path(tmp.name) / "voxtype-osd-gtk4"
+        self.binary.touch()
+        executable = patch(
+            "coe_osd.shutil.which",
+            side_effect=lambda command: (
+                str(self.binary)
+                if command == "voxtype-osd-gtk4"
+                else "/usr/bin/dbus-daemon"
+            ),
+        )
+        enabled = patch.dict("os.environ", {"COE_ENHANCE_OSD": "1"})
+        for fixture in (executable, enabled):
+            fixture.start()
+            self.addCleanup(fixture.stop)
+
     def test_private_socket_and_single_owned_host(self):
         with tempfile.TemporaryDirectory() as d:
             o = Osd(d)
@@ -47,6 +66,17 @@ class OsdTests(unittest.TestCase):
         ):
             o.start()
             p.assert_not_called()
+
+    def test_missing_optional_dependencies_skip_visual_process(self):
+        for missing in ("binary", "dbus"):
+            with (
+                self.subTest(missing=missing),
+                patch("coe_osd.Path.is_file", return_value=missing != "binary"),
+                patch("coe_osd.shutil.which", return_value=None),
+                patch("coe_osd.subprocess.Popen") as start,
+            ):
+                Osd("/tmp/unused-osd-test").start()
+                start.assert_not_called()
 
 
 if __name__ == "__main__":

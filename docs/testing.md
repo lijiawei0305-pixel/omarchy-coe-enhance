@@ -44,6 +44,6 @@ python3 scripts/lint.py
 
 `qmllint` 需要本机 `/usr/share/omarchy/shell` 的 QML 元数据。CI 不假装具有真实桌面；仅执行后端和官方 manifest 检查。
 
-首次发布前，本机已验证 84 项单元测试、上述隔离链路、原版 OSD、真实面板和右 Alt 开始录音后取消；7 个相关配置逐字节不变，Coe/Voxtype/Shell 原进程未被替换。原始本机日志、含私人地址的截图及开发历史未发布。公开截图仅用于展示界面，不是云端准确率证明。
+首次发布前，本机已验证 85 项单元测试、上述隔离链路、原版 OSD、真实面板和右 Alt 开始录音后取消；7 个相关配置逐字节不变，Coe/Voxtype/Shell 原进程未被替换。原始本机日志、含私人地址的截图及开发历史未发布。公开截图仅用于展示界面，不是云端准确率证明。
 
 `tests/live_e2e.py`、`ui_live.py`、`lifecycle.py` 等脚本会操作真实窗口、临时配置或服务，不能加入无人值守的通用 CI。`tests/cloud_e2e.py` 会调用付费服务，必须另行获得明确授权和预算；不要在 GitHub Actions 传入真实 ASR/LLM 密钥。

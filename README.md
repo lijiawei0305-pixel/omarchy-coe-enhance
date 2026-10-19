@@ -127,7 +127,7 @@ python3 scripts/lint.py
 ~/.local/share/omarchy-coe-enhance/venv/bin/python -B -m unittest discover -s tests -v
 ```
 
-本地已完成 84 项单元测试、真实 D-Bus + 本地 Mock ASR、右 Alt 录音后取消、原版 OSD 和实际 Shell 面板检查。首发仓库保留代码、测试和经检查的截图，私人开发历史及原始运行日志留在本机。
+本地已完成 85 项单元测试、真实 D-Bus + 本地 Mock ASR、右 Alt 录音后取消、原版 OSD 和实际 Shell 面板检查。首发仓库保留代码、测试和经检查的截图，私人开发历史及原始运行日志留在本机。
 
 CI 只运行隔离构建、本地 Mock 测试和官方 manifest 验证，不使用云端密钥，不修改真实桌面。QML lint 与桌面验证须在匹配的 Omarchy 环境执行。详见[测试说明](docs/testing.md)、[架构](docs/architecture.md)、[排错](docs/troubleshooting.md)和[贡献指南](CONTRIBUTING.md)。
 
