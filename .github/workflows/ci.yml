@@ -3,25 +3,29 @@ name: CI
 on:
   push:
     branches: [main]
-    tags: ['v*']
   pull_request:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    env:
-      COE_TEST_PROBE: ${{ runner.temp }}/coe-build/bin/coe-probe
-      COE_TEST_BINARY: ${{ runner.temp }}/coe-build/bin/coe
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version: '1.26.5'
           cache: false
+      - name: Isolated test binary paths
+        run: |
+          echo "COE_TEST_PROBE=$RUNNER_TEMP/coe-build/bin/coe-probe" >> "$GITHUB_ENV"
+          echo "COE_TEST_BINARY=$RUNNER_TEMP/coe-build/bin/coe" >> "$GITHUB_ENV"
       - name: Python / D-Bus test dependencies
         run: |
           sudo apt-get update -qq

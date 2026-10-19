@@ -1,5 +1,5 @@
 {
-  "version": "0.2.5",
+  "version": "0.2.6",
   "private_development_history_published": false,
   "configured_secret_or_private_host_matches": 0,
   "credential_pattern_matches": 0,
@@ -15,6 +15,7 @@
   "omarchy_plugin_validate": true,
   "qml_lint": true,
   "ruff_error_checks": true,
+  "github_workflow_actionlint": true,
   "real_cloud_requests_for_release": 0,
   "running_desktop_redeployed": false,
   "ci_scope": "Pinned backend, Python/local HTTP tests, Go race, isolated D-Bus and official manifest validation; QML/desktop checked locally"
