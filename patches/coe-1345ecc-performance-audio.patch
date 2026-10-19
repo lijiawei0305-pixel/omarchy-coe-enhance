@@ -1,0 +1,37 @@
+--- a/internal/audio/activity.go
++++ b/internal/audio/activity.go
+@@ -49,10 +49,8 @@
+ 	var sum float64
+ 	var sumSquares float64
+ 
+-	samples := make([]int32, 0, sampleCount)
+ 	for i := 0; i+1 < len(result.Data); i += 2 {
+ 		sample := int32(int16(binary.LittleEndian.Uint16(result.Data[i : i+2])))
+-		samples = append(samples, sample)
+ 		sum += float64(sample)
+ 	}
+ 	mean := sum / float64(sampleCount)
+@@ -64,7 +62,8 @@
+ 	clipThreshold := 0.98
+ 	prevSign := 0
+ 
+-	for _, sample := range samples {
++	for i := 0; i+1 < len(result.Data); i += 2 {
++		sample := int32(int16(binary.LittleEndian.Uint16(result.Data[i : i+2])))
+ 		centeredSigned := (float64(sample) - mean) / fullScale
+ 		centered := centeredSigned
+ 		if centered < 0 {
+--- a/internal/app/runtime.go
++++ b/internal/app/runtime.go
+@@ -151,10 +151,7 @@
+ 			"duration", result.Duration.Round(time.Millisecond),
+ 			"source", effectiveSource,
+ 		}
+-		activity := processedActivityPreview(result)
+-		if activity != "" {
+-			recordingAttrs = append(recordingAttrs, "audio_activity", activity)
+-		}
++
+ 		if result.Stderr != "" {
+ 			recordingAttrs = append(recordingAttrs, "stderr", result.Stderr)
+ 		}

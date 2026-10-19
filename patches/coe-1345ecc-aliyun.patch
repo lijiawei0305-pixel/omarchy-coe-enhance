@@ -1,0 +1,22 @@
+diff --git i/internal/asr/client.go w/internal/asr/client.go
+index 83c16fe..70eb59f 100644
+--- i/internal/asr/client.go
++++ w/internal/asr/client.go
+@@ -48,7 +48,7 @@ func NormalizeProviderName(value string) string {
+ 
+ func SupportedProvider(value string) bool {
+ 	switch NormalizeProviderName(value) {
+-	case ProviderStub, ProviderOpenAI, ProviderDoubao, ProviderWhisperCPP, ProviderSenseVoice, ProviderVoxtype, ProviderQwen3ASRVLLM:
++	case ProviderStub, ProviderOpenAI, ProviderDoubao, ProviderWhisperCPP, ProviderSenseVoice, ProviderVoxtype, ProviderQwen3ASRVLLM, "aliyun-asr":
+ 		return true
+ 	default:
+ 		return false
+@@ -98,6 +98,8 @@ func NewClient(provider config.ASRConfig) (Client, error) {
+ 			Binary: provider.Binary,
+ 			Engine: provider.Engine,
+ 		}, nil
++	case "aliyun-asr":
++		return AliyunASRClient{Endpoint: provider.Endpoint, Model: provider.Model, APIKey: provider.APIKey, APIKeyEnv: provider.APIKeyEnv, Language: provider.Language, Prompt: provider.Prompt, HTTPClient: newHTTPClient(provider.TimeoutSeconds, 60)}, nil
+ 	case ProviderQwen3ASRVLLM:
+ 		return Qwen3ASRVLLMClient{
+ 			Endpoint:   provider.Endpoint,

@@ -1,0 +1,26 @@
+__pycache__/
+*.pyc
+.runtime/
+test-results/
+
+.ruff_cache/
+
+# Private runtime/configuration data must never be published.
+.venv/
+.env
+.env.*
+env
+profiles.json
+credentials*.json
+*credential*.json
+backups/
+installation-backups/
+*.wav
+*.pcm
+*.raw
+*.mp3
+*.flac
+*.ogg
+*.log
+/docs/evidence/*
+!/docs/evidence/.gitkeep

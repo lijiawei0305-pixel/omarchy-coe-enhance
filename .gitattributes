@@ -1,0 +1,2 @@
+# Unified patch context contains a marker space followed by Go indentation.
+*.patch -whitespace

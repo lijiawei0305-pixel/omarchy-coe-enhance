@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "cc.coe-enhance",
+  "name": "Coe 语音输入",
+  "version": "0.2.5",
+  "author": "cconthetop",
+  "license": "Apache-2.0",
+  "description": "在线 ASR Profiles、独立 LLM 纠错和 Hyprland 中文语音输入。",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "bar/widget.qml"
+  },
+  "barWidget": {
+    "displayName": "Coe 语音输入",
+    "category": "Productivity",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

@@ -1,0 +1,127 @@
+--- a/internal/app/runtime.go
++++ b/internal/app/runtime.go
+@@ -1,6 +1,7 @@
+ package app
+ 
+ import (
++	"coe/internal/perf"
+ 	"context"
+ 	"fmt"
+ 	"io"
+@@ -61,6 +62,7 @@
+ 
+ 	var captureSession audio.CaptureSession
+ 	var captureSource string
++	var captureTrace *perf.Trace
+ 	var currentEdit *selectedTextEditSession
+ 
+ 	handleStart := func(command runtimeCommand) runtimeCommandResponse {
+@@ -68,7 +70,9 @@
+ 			return runtimeCommandResponse{Active: true}
+ 		}
+ 
+-		session, err := a.Pipeline.Recorder.Start(ctx)
++		captureTrace = perf.New()
++		captureTrace.Mark("start_received")
++		session, err := a.Pipeline.Recorder.Start(perf.With(ctx, captureTrace))
+ 		if err != nil {
+ 			message := fmt.Sprintf("recording start failed: %v", err)
+ 			status := a.dictationState.Error(message)
+@@ -82,6 +86,8 @@
+ 		captureSession = session
+ 		captureSource = command.Source
+ 		status := a.dictationState.Recording("recording started")
++		captureTrace.Session(status.SessionID)
++		captureTrace.Mark("recorder_spawned")
+ 		a.emitStateChanged(logger, status)
+ 		if command.Edit != nil &&
+ 			config.NormalizeRuntimeMode(a.Config.Runtime.Mode) == config.RuntimeModeFcitx &&
+@@ -111,9 +117,13 @@
+ 			return runtimeCommandResponse{}
+ 		}
+ 
++		captureTrace.Mark("T0")
++		defer captureTrace.Mark("core_finished")
++		processCtx := perf.With(ctx, captureTrace)
+ 		effectiveSource := captureSource
+ 		stopCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+ 		result, err := captureSession.Stop(stopCtx)
++		captureTrace.Mark("T1")
+ 		cancel()
+ 		captureSession = nil
+ 		captureSource = ""
+@@ -156,7 +166,7 @@
+ 		if effectiveSource == "fcitx-module" {
+ 			processor.Output = nil
+ 		}
+-		processed, err := processor.TranscribeCapture(ctx, result)
++		processed, err := processor.TranscribeCapture(processCtx, result)
+ 		if err != nil {
+ 			status := a.dictationState.Error(err.Error())
+ 			a.emitStateChanged(logger, status)
+@@ -172,2 +182,2 @@
+-			processed = processor.ApplyCorrection(ctx, processed, corrector)
++			processed = processor.ApplyCorrection(processCtx, processed, corrector)
+ 			processed = a.normalizeForScene(processed, activeScene.ID)
+@@ -289,6 +299,7 @@
+ 		} else {
+ 			status := a.dictationState.Completed("result ready")
+ 			a.emitStateChanged(logger, status)
++			captureTrace.Mark("result_emit")
+ 			a.emitResultReady(logger, status.SessionID, processed.Corrected)
+ 			a.emitStateChanged(logger, a.dictationState.Idle("ready"))
+ 		}
+--- a/internal/pipeline/orchestrator.go
++++ b/internal/pipeline/orchestrator.go
+@@ -1,6 +1,7 @@
+ package pipeline
+ 
+ import (
++	"coe/internal/perf"
+ 	"context"
+ 	"fmt"
+ 	"strings"
+@@ -91,7 +92,8 @@
+ 	}
+ 
+ 	asrStartedAt := time.Now()
+-	transcribed, err := o.ASR.Transcribe(ctx, capture)
++	transcribed, err := o.ASR.Transcribe(perf.HTTP(ctx, "asr"), capture)
++	perf.Mark(ctx, "T4")
+ 	result.ASRDuration = time.Since(asrStartedAt)
+ 	if err != nil {
+ 		return Result{}, err
+@@ -113,7 +115,13 @@
+ 	}
+ 
+ 	correctionStartedAt := time.Now()
+-	corrected, err := corrector.Correct(ctx, result.Transcript)
++	if corrector.Name() != "stub-llm" {
++		perf.Mark(ctx, "T5")
++	}
++	corrected, err := corrector.Correct(perf.HTTP(ctx, "llm"), result.Transcript)
++	if corrector.Name() != "stub-llm" {
++		perf.Mark(ctx, "T6")
++	}
+ 	result.CorrectionDuration = time.Since(correctionStartedAt)
+ 	if err != nil {
+ 		result.CorrectionWarning = err.Error()
+--- a/internal/audio/pwrecord.go
++++ b/internal/audio/pwrecord.go
+@@ -2,6 +2,7 @@
+ 
+ import (
+ 	"bytes"
++	"coe/internal/perf"
+ 	"context"
+ 	"errors"
+ 	"fmt"
+@@ -86,7 +87,7 @@
+ 	}
+ 
+ 	go func() {
+-		_, err := io.Copy(&session.data, stdout)
++		_, err := io.Copy(&session.data, &firstPCMReader{Reader: stdout, trace: perf.From(ctx)})
+ 		session.copyErrCh <- err
+ 	}()
+ 

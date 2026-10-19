@@ -1,0 +1,73 @@
+--- a/internal/llm/openai.go
++++ b/internal/llm/openai.go
+@@ -12,7 +12,9 @@
+ 
+ 	"coe/internal/prompts"
+ 
+-	"github.com/quailyquaily/uniai"
++	"errors"
++	openai "github.com/openai/openai-go/v3"
++	"github.com/openai/openai-go/v3/option"
+ )
+ 
+ const defaultOpenAIResponsesEndpoint = "https://api.openai.com/v1/responses"
+@@ -140,28 +142,39 @@
+ func (c OpenAICorrector) correctViaChat(ctx context.Context, input, apiKey, instructions string) (Result, error) {
+ 	model := defaultCorrectorModel(c.Model)
+ 
+-	client := uniai.New(uniai.Config{
+-		Provider:      "openai",
+-		OpenAIAPIKey:  apiKey,
+-		OpenAIAPIBase: normalizeOpenAIAPIBase(c.Endpoint),
+-		OpenAIModel:   model,
+-	})
+-
+-	resp, err := client.Chat(
+-		ctx,
+-		uniai.WithProvider("openai"),
+-		uniai.WithModel(model),
+-		uniai.WithMessages(
+-			uniai.System(instructions),
+-			uniai.User(input),
+-		),
+-		uniai.WithMaxTokens(300),
+-	)
++	// Use the configured long-lived HTTP client and disable SDK's implicit
++	// billable retries. A failed cleanup still falls back to ASR in the pipeline.
++	httpClient := c.HTTPClient
++	if httpClient == nil {
++		httpClient = http.DefaultClient
++	}
++	client := openai.NewClient(option.WithAPIKey(apiKey),
++		option.WithBaseURL(normalizeOpenAIAPIBase(c.Endpoint)),
++		option.WithHTTPClient(httpClient), option.WithMaxRetries(0))
++	params := openai.ChatCompletionNewParams{Model: openai.ChatModel(model),
++		Messages: []openai.ChatCompletionMessageParamUnion{openai.SystemMessage(instructions), openai.UserMessage(input)}}
++	// Preserve uniai v0.1.7's existing token field/model behavior.
++	lower := strings.ToLower(model)
++	if strings.HasPrefix(lower, "gpt") || strings.HasPrefix(lower, "o1") || strings.HasPrefix(lower, "o3") || strings.HasPrefix(lower, "o4") {
++		params.MaxCompletionTokens = openai.Int(300)
++	} else {
++		params.MaxTokens = openai.Int(300)
++	}
++	resp, err := client.Chat.Completions.New(ctx, params)
+ 	if err != nil {
+-		return Result{}, fmt.Errorf("openai correction failed: %w", err)
++		var apiError *openai.Error
++		if errors.As(err, &apiError) {
++			return Result{}, fmt.Errorf("openai correction HTTP %d", apiError.StatusCode)
++		}
++		if ctx.Err() != nil {
++			return Result{}, ctx.Err()
++		}
++		return Result{}, fmt.Errorf("openai correction network failure")
+ 	}
+-
+-	return Result{Text: strings.TrimSpace(resp.Text)}, nil
++	if len(resp.Choices) == 0 {
++		return Result{}, nil
++	}
++	return Result{Text: strings.TrimSpace(resp.Choices[0].Message.Content)}, nil
+ }
+ 
+ type responsePayload struct {

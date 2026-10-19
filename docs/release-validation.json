@@ -1,0 +1,21 @@
+{
+  "version": "0.2.5",
+  "private_development_history_published": false,
+  "configured_secret_or_private_host_matches": 0,
+  "credential_pattern_matches": 0,
+  "machine_specific_home_paths": 0,
+  "markdown_relative_links_checked": true,
+  "reviewed_screenshots": 4,
+  "python_unit_tests_passed": 84,
+  "fresh_pinned_backend_build": true,
+  "go_test_all": true,
+  "go_test_race_all": true,
+  "first_boot_without_api_key": true,
+  "isolated_dbus_mock_asr": true,
+  "omarchy_plugin_validate": true,
+  "qml_lint": true,
+  "ruff_error_checks": true,
+  "real_cloud_requests_for_release": 0,
+  "running_desktop_redeployed": false,
+  "ci_scope": "Pinned backend, Python/local HTTP tests, Go race, isolated D-Bus and official manifest validation; QML/desktop checked locally"
+}

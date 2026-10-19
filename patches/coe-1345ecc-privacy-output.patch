@@ -1,0 +1,59 @@
+diff --git i/internal/app/bootstrap.go w/internal/app/bootstrap.go
+index 6e71163..b660ee4 100644
+--- i/internal/app/bootstrap.go
++++ w/internal/app/bootstrap.go
+@@ -31,7 +31,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
+ 	if !config.IsSupportedRuntimeMode(cfg.Runtime.Mode) {
+ 		return nil, fmt.Errorf("unsupported runtime.mode %q", cfg.Runtime.Mode)
+ 	}
+-	desktopRuntime := cfg.Runtime.Mode == config.RuntimeModeDesktop
++	desktopRuntime := cfg.Runtime.Mode == config.RuntimeModeDesktop && os.Getenv("COE_ENHANCE_BRIDGE") != "1"
+ 
+ 	caps, err := capabilities.ProbeWithOptions(ctx, capabilities.ProbeOptions{
+ 		SkipPortals: !desktopRuntime,
+@@ -237,6 +237,9 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
+ 		},
+ 	}
+ 
++	if os.Getenv("COE_ENHANCE_BRIDGE") == "1" {
++		instance.Pipeline.Output = nil
++	}
+ 	dictationBusRequired := cfg.Runtime.Mode == config.RuntimeModeFcitx ||
+ 		(desktopRuntime && caps.Hotkey.Mode == capabilities.ModeExternalBinding)
+ 	dictationBus, err := dbusipc.ConnectSession(instance)
+diff --git i/internal/app/runtime.go w/internal/app/runtime.go
+index 6093646..fd55125 100644
+--- i/internal/app/runtime.go
++++ w/internal/app/runtime.go
+@@ -224,8 +224,8 @@ func (a *App) Serve(ctx context.Context, w io.Writer) error {
+ 		processed.TotalDuration = time.Since(startedAt)
+ 
+ 		pipelineAttrs := []any{
+-			"transcript", processed.Transcript,
+-			"corrected", processed.Corrected,
++			"transcript_chars", len([]rune(processed.Transcript)),
++			"corrected_chars", len([]rune(processed.Corrected)),
+ 			"scene", a.currentScene().ID,
+ 			"asr_duration", processed.ASRDuration.Round(time.Millisecond),
+ 			"correction_duration", processed.CorrectionDuration.Round(time.Millisecond),
+diff --git i/internal/audio/pwrecord.go w/internal/audio/pwrecord.go
+index 4001f2c..46afd4a 100644
+--- i/internal/audio/pwrecord.go
++++ w/internal/audio/pwrecord.go
+@@ -98,7 +98,7 @@ func (r PWRecord) Start(ctx context.Context) (CaptureSession, error) {
+ }
+ 
+ func (r PWRecord) Summary() string {
+-	return fmt.Sprintf("%s --rate %d --channels %d --format %s -", r.Binary, r.SampleRate, r.Channels, r.Format)
++	return fmt.Sprintf("%s --raw --rate %d --channels %d --format %s -", r.Binary, r.SampleRate, r.Channels, r.Format)
+ }
+ 
+ func (r PWRecord) command(ctx context.Context) (*exec.Cmd, error) {
+@@ -109,6 +109,7 @@ func (r PWRecord) command(ctx context.Context) (*exec.Cmd, error) {
+ 	cmd := exec.CommandContext(
+ 		ctx,
+ 		r.Binary,
++		"--raw",
+ 		"--rate", strconv.Itoa(r.SampleRate),
+ 		"--channels", strconv.Itoa(r.Channels),
+ 		"--format", r.Format,

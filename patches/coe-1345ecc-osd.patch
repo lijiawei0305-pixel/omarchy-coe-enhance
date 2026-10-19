@@ -1,0 +1,32 @@
+--- a/internal/app/runtime.go
++++ b/internal/app/runtime.go
+@@ -16,6 +16,8 @@
+ )
+ 
+ func (a *App) Serve(ctx context.Context, w io.Writer) error {
++	ctx, closeLevels := audio.WithRecordingLevels(ctx)
++	defer closeLevels()
+ 	a.runtimeRunning.Store(true)
+ 	defer a.runtimeRunning.Store(false)
+ 
+@@ -176,6 +178,9 @@
+ 		if strings.TrimSpace(processed.Transcript) != "" {
+ 			activeScene, focusTarget := a.autoSwitchScene(ctx, logger)
+ 			corrector := a.correctorForScene(activeScene.ID)
++			if corrector != nil && corrector.Name() != "stub-llm" {
++				a.emitStateChanged(logger, a.dictationState.Processing("processing llm"))
++			}
+ 			processed = processor.ApplyCorrection(processCtx, processed, corrector)
+ 			processed = a.normalizeForScene(processed, activeScene.ID)
+ 
+--- a/internal/audio/pwrecord.go
++++ b/internal/audio/pwrecord.go
+@@ -73,6 +73,8 @@
+ 		return nil, err
+ 	}
+ 
++	stdout = recordingLevelReader(ctx, stdout, r.SampleRate, r.Channels, r.Format)
++
+ 	session := &pwRecordSession{
+ 		cmd:       cmd,
+ 		stdout:    stdout,
