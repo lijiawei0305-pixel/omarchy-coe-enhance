@@ -2,7 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Window
 import QtQuick.Controls as QQC
-import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 Panel {
@@ -18,9 +18,9 @@ Panel {
     readonly property string dictationState: hostWidget ? hostWidget.dictationState : "offline"
     readonly property bool working: hostWidget ? hostWidget.busy : false
     readonly property bool inFlight: dictationState === "recording" || dictationState === "processing"
-    readonly property color ink: Color.popups.text
-    readonly property color muted: Util.alpha(ink, 0.68)
-    readonly property real gap: Style.spacing.md
+    readonly property color ink: Commons.Color.popups.text
+    readonly property color muted: Commons.Util.alpha(ink, 0.68)
+    readonly property real gap: Commons.Style.spacing.md
     property string page: "home"
     property var asrDraft: ({})
     property var llmDraft: ({})
@@ -451,8 +451,8 @@ Panel {
     component Caption: Text {
         width: parent.width
         color: root.muted
-        font.family: Style.font.family
-        font.pixelSize: Style.font.caption
+        font.family: Commons.Style.font.family
+        font.pixelSize: Commons.Style.font.caption
         wrapMode: Text.Wrap
         textFormat: Text.PlainText
     }
@@ -471,8 +471,8 @@ Panel {
     component Heading: Text {
         width: parent.width
         color: root.ink
-        font.family: Style.font.family
-        font.pixelSize: Style.font.body
+        font.family: Commons.Style.font.family
+        font.pixelSize: Commons.Style.font.body
         font.bold: true
         wrapMode: Text.Wrap
         textFormat: Text.PlainText
@@ -496,7 +496,7 @@ Panel {
         property var inputValidator: null
         signal edited(string value)
         width: parent.width
-        spacing: Style.spacing.labelGap
+        spacing: Commons.Style.spacing.labelGap
         Caption {
             text: parent.label
         }
@@ -528,7 +528,7 @@ Panel {
     component Divider: Rectangle {
         width: parent.width
         height: 1
-        color: Util.alpha(root.ink, 0.11)
+        color: Commons.Util.alpha(root.ink, 0.11)
     }
     component NavRow: Item {
         property string label: ""
@@ -543,7 +543,7 @@ Panel {
         }
         Column {
             anchors.left: parent.left
-            anchors.leftMargin: Style.spacing.controlPaddingX
+            anchors.leftMargin: Commons.Style.spacing.controlPaddingX
             anchors.right: arrow.left
             anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
@@ -566,7 +566,7 @@ Panel {
             anchors.verticalCenter: parent.verticalCenter
             text: "›"
             color: root.muted
-            font.pixelSize: Style.font.title
+            font.pixelSize: Commons.Style.font.title
         }
     }
     KeyboardPanel {
@@ -604,8 +604,8 @@ Panel {
                         anchors.verticalCenter: parent.verticalCenter
                         text: root.title
                         color: root.ink
-                        font.family: Style.font.family
-                        font.pixelSize: Style.font.title
+                        font.family: Commons.Style.font.family
+                        font.pixelSize: Commons.Style.font.title
                         font.bold: true
                         elide: Text.ElideRight
                         textFormat: Text.PlainText
@@ -620,13 +620,13 @@ Panel {
                             height: 6
                             radius: 3
                             anchors.verticalCenter: parent.verticalCenter
-                            color: root.dictationState === "error" ? Color.urgent : root.dictationState === "offline" ? root.muted : Color.accent
+                            color: root.dictationState === "error" ? Commons.Color.urgent : root.dictationState === "offline" ? root.muted : Commons.Color.accent
                         }
                         Text {
                             text: root.stateLabel
-                            color: root.dictationState === "error" ? Color.urgent : root.muted
-                            font.family: Style.font.family
-                            font.pixelSize: Style.font.caption
+                            color: root.dictationState === "error" ? Commons.Color.urgent : root.muted
+                            font.family: Commons.Style.font.family
+                            font.pixelSize: Commons.Style.font.caption
                         }
                     }
                     Action {
@@ -734,7 +734,7 @@ Panel {
                     Caption {
                         visible: root.editor
                         text: root.dirty ? "未保存的更改" : "与已保存配置一致"
-                        color: root.dirty ? Color.accent : root.muted
+                        color: root.dirty ? Commons.Color.accent : root.muted
                     }
                     Row {
                         visible: root.editor
@@ -757,7 +757,7 @@ Panel {
                     Caption {
                         visible: root.feedback !== "" || root.working || !!(root.hostWidget && (root.hostWidget.snapshot.error || root.hostWidget.snapshot.hotkey_error))
                         text: root.working ? "正在处理，请稍候…" : (root.feedback || (root.hostWidget ? (root.hostWidget.snapshot.error || root.hostWidget.snapshot.hotkey_error || "") : ""))
-                        color: root.feedbackError || (root.hostWidget && !!root.hostWidget.snapshot.error) ? Color.urgent : Color.accent
+                        color: root.feedbackError || (root.hostWidget && !!root.hostWidget.snapshot.error) ? Commons.Color.urgent : Commons.Color.accent
                         maximumLineCount: 3
                         elide: Text.ElideRight
                     }
@@ -811,8 +811,8 @@ Panel {
                 text: root.dictationState === "recording" ? "结束录音并识别" : root.dictationState === "processing" ? "正在识别，请稍候" : "开始语音输入"
                 iconText: root.dictationState === "recording" ? "󰓛" : root.dictationState === "processing" ? "󰔟" : "󰍬"
                 iconSpinning: root.dictationState === "processing"
-                fontSize: Style.font.title
-                background: Util.alpha(Color.accent, 0.16)
+                fontSize: Commons.Style.font.title
+                background: Commons.Util.alpha(Commons.Color.accent, 0.16)
                 bordered: true
                 enabled: !root.working && root.dictationState !== "processing" && root.dictationState !== "offline" && !!root.store.active
                 onClicked: {
@@ -832,8 +832,8 @@ Panel {
                         verticalAlignment: Text.AlignVCenter
                         text: "识别语言"
                         color: root.ink
-                        font.family: Style.font.family
-                        font.pixelSize: Style.font.body
+                        font.family: Commons.Style.font.family
+                        font.pixelSize: Commons.Style.font.body
                     }
                     Repeater {
                         model: root.languageChoices(root.activeProfile, "").filter(function(o) {
@@ -890,8 +890,8 @@ Panel {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "文本输出"
                     color: root.ink
-                    font.family: Style.font.family
-                    font.pixelSize: Style.font.body
+                    font.family: Commons.Style.font.family
+                    font.pixelSize: Commons.Style.font.body
                 }
                 Caption {
                     width: parent.width / 2
@@ -908,14 +908,14 @@ Panel {
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.shortcutLabel
                     color: root.muted
-                    font.family: Style.font.family
-                    font.pixelSize: Style.font.caption
+                    font.family: Commons.Style.font.family
+                    font.pixelSize: Commons.Style.font.caption
                     elide: Text.ElideRight
                 }
                 Action {
                     id: manage
                     text: "管理与设置  ›"
-                    fontSize: Style.font.caption
+                    fontSize: Commons.Style.font.caption
                     onClicked: root.navigate("settings")
                 }
             }
@@ -975,8 +975,8 @@ Panel {
                             verticalAlignment: Text.AlignVCenter
                             text: (profileRow.modelData.id === root.store.active ? "✓  " : "    ") + root.shortName(profileRow.modelData)
                             color: root.ink
-                            font.family: Style.font.family
-                            font.pixelSize: Style.font.body
+                            font.family: Commons.Style.font.family
+                            font.pixelSize: Commons.Style.font.body
                             elide: Text.ElideRight
                             textFormat: Text.PlainText
                         }
@@ -1017,7 +1017,7 @@ Panel {
                         }
                         Action {
                             text: "删除"
-                            foreground: Color.urgent
+                            foreground: Commons.Color.urgent
                             enabled: !root.working && !root.inFlight && profileRow.modelData.id !== root.store.active
                             onClicked: {
                                 root.pendingDelete = profileRow.modelData.id;
@@ -1336,13 +1336,13 @@ Panel {
                         color: root.ink
                         wrapMode: TextEdit.Wrap
                         selectByMouse: true
-                        font.family: Style.font.family
-                        font.pixelSize: Style.font.body
+                        font.family: Commons.Style.font.family
+                        font.pixelSize: Commons.Style.font.body
                         onTextChanged: root.updateLlm("prompt", text)
                         background: Rectangle {
-                            color: Util.alpha(root.ink, 0.04)
-                            border.color: Util.alpha(root.ink, 0.24)
-                            radius: Style.cornerRadius
+                            color: Commons.Util.alpha(root.ink, 0.04)
+                            border.color: Commons.Util.alpha(root.ink, 0.24)
+                            radius: Commons.Style.cornerRadius
                         }
                     }
                     Caption {
@@ -1396,7 +1396,7 @@ Panel {
             }
             Action {
                 text: "取消当前录音"
-                foreground: Color.urgent
+                foreground: Commons.Color.urgent
                 enabled: !root.working && root.dictationState === "recording"
                 onClicked: root.send("cancel")
             }

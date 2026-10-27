@@ -1,7 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 BarWidget {
@@ -97,9 +97,9 @@ BarWidget {
     BarIconButton {
         id: button
         bar: root.bar
-        foreground: root.dictationState === "error" ? Color.urgent
-            : root.dictationState === "recording" ? Color.pick("coe.recording", "#e5c07b")
-            : root.dictationState === "offline" ? Color.muted : Color.bar.text
+        foreground: root.dictationState === "error" ? Commons.Color.urgent
+            : root.dictationState === "recording" ? Commons.Color.pick("coe.recording", "#e5c07b")
+            : root.dictationState === "offline" ? Commons.Color.muted : Commons.Color.bar.text
         text: root.dictationState === "processing" ? "󰔟" : doneFeedback.running ? "󰄬" : root.dictationState === "offline" ? "󰍭" : "󰍬"
         tooltipText: "Coe 语音输入 · " + ({idle:"已就绪",recording:"正在录音",processing:"正在识别/纠错",completed:"已完成",error:"发生错误",offline:"服务未连接"}[root.dictationState] || root.dictationState)
         textRotation: root.dictationState === "processing" ? spinner.angle : 0

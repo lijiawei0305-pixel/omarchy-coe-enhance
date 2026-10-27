@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed unreadable panel and bar text on Qt 6.12: qualify Omarchy theme imports so `Color` is not resolved to the new QtQuick `Color` singleton.
+
 ## 0.2.6
 
 First packaged public release.
