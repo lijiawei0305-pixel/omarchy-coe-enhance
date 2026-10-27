@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fixed "服务未启动" on every monitor but one: the bridge now lives in a single `Service.qml`, and each monitor's bar widget reads it instead of starting its own bridge.
 - Fixed unreadable panel and bar text on Qt 6.12: qualify Omarchy theme imports so `Color` is not resolved to the new QtQuick `Color` singleton.
 
 ## 0.2.6

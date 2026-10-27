@@ -1,50 +1,28 @@
 import QtQuick
 import Quickshell
-import Quickshell.Io
 import qs.Commons as Commons
 import qs.Ui
 
+// One instance per monitor bar. State and the bridge live in Service.qml so
+// every monitor shows the same connection.
 BarWidget {
     id: root
     moduleName: "cc.coe-enhance"
-    property var snapshot: ({state: "offline", store: {profiles: [], llm: {}}})
-    property string dictationState: snapshot.state || "offline"
-    property bool bridgeConnected: false
-    readonly property string ownerToken: Date.now().toString(36) + "-" + Math.random().toString(36).slice(2)
-    Component.onDestruction: Quickshell.execDetached([root.python, "-B", root.script, "cleanup", root.ownerToken])
-    property int serial: 0
-    property bool busy: false
-    property int pendingId: 0
-    property string message: ""
-    property bool failed: false
+    readonly property var service: bar?.shell?.serviceFor(root.moduleName) ?? null
+    readonly property var snapshot: service ? service.snapshot : ({state: "offline", store: {profiles: [], llm: {}}})
+    readonly property string dictationState: snapshot.state || "offline"
+    readonly property bool bridgeConnected: service ? service.bridgeConnected : false
+    readonly property bool busy: service ? service.busy : false
     readonly property bool opened: panelLoader.item ? panelLoader.item.opened : false
     readonly property bool popoutSwitchClosing: panelLoader.item ? panelLoader.item.popoutSwitchClosing : false
-    readonly property string python: Quickshell.env("HOME") + "/.local/share/omarchy-coe-enhance/venv/bin/python"
-    readonly property string script: Qt.resolvedUrl("../scripts/coe-bridge.py").toString().replace("file://", "")
+    readonly property string screenName: root.QsWindow.window && root.QsWindow.window.screen ? root.QsWindow.window.screen.name : ""
     implicitWidth: button.implicitWidth
     implicitHeight: button.implicitHeight
 
     function send(action, data) {
-        if (!bridgeConnected) { message = "桥接层尚未连接"; failed = true; return }
-        var req = data || {}
-        req.action = action
-        req.request_id = ++serial
-        if (action !== "get" && action !== "panel") { busy = true; pendingId = req.request_id; message = "正在执行…"; failed = false }
-        bridge.write(JSON.stringify(req) + "\n")
-    }
-    function receive(line) {
-        try {
-            var data = JSON.parse(line)
-            if (data.type === "fatal") { message = data.error; failed = true; return }
-            if (data.store) { var first = !bridgeConnected; snapshot = data; bridgeConnected = true; if (first) root.send("panel", {open:root.opened}) }
-            if (data.type === "response") {
-                if (data.request_id === pendingId) busy = false
-                failed = data.ok === false
-                message = data.error || data.notice || "操作完成"
-                if (panelLoader.item && data.action !== "get" && data.action !== "panel") panelLoader.item.operationFinished(data)
-            }
-            if (data.state === "completed") doneFeedback.restart()
-        } catch (e) { message = "桥接层响应无效"; failed = true }
+        if (!service) return
+        if (action === "panel") service.setPanelOpen(root, !!(data && data.open))
+        else service.send(action, data, root)
     }
     function injectPanel() {
         if (!panelLoader.item) return
@@ -56,37 +34,21 @@ BarWidget {
     function close() { if (panelLoader.item) panelLoader.item.close() }
     function toggle() { opened ? close() : open() }
     function closeForPopoutSwitch() { if (panelLoader.item) panelLoader.item.closeForPopoutSwitch() }
+    function inspect() { return panelLoader.item ? panelLoader.item.inspect() : "{}" }
+    function showPage(page, profileId) { if (panelLoader.item) panelLoader.item.showPage(page, profileId) }
+    function preview(width, height) {
+        if (panelLoader.item) { panelLoader.item.previewWidth = width; panelLoader.item.previewHeight = height }
+    }
     onBarChanged: injectPanel()
-    Process {
-        id: bridge
-        command: [root.python, "-B", root.script, "watch", root.ownerToken]
-        stdinEnabled: true
-        running: true
-        stdout: SplitParser { onRead: function(data) { root.receive(data) } }
-        onExited: {
-            root.bridgeConnected = false
-            root.busy = false
-            root.snapshot = {state: "offline", store: root.snapshot.store}
-            retry.restart()
+    onServiceChanged: if (service) service.register(root)
+    Component.onCompleted: if (service) service.register(root)
+    Component.onDestruction: if (service) service.unregister(root)
+    Connections {
+        target: root.service
+        function onOperationFinished(data, origin) {
+            if (origin === root && panelLoader.item) panelLoader.item.operationFinished(data)
         }
     }
-    IpcHandler {
-        target: "cc.coe-enhance"
-        function status(): string {
-            return JSON.stringify({connected:root.bridgeConnected,state:root.dictationState,opened:root.opened,busy:root.busy,error:root.failed ? root.message : (root.snapshot.error || ""),notice:root.message})
-        }
-        function inspect(): string {
-            return panelLoader.item ? panelLoader.item.inspect() : "{}"
-        }
-        function showPage(page: string, profileId: string): void {
-            if (panelLoader.item) panelLoader.item.showPage(page, profileId)
-        }
-        function preview(width: int, height: int): void {
-            if (panelLoader.item) { panelLoader.item.previewWidth = width; panelLoader.item.previewHeight = height }
-        }
-    }
-    Timer { id: retry; interval: 3000; onTriggered: bridge.running = true }
-    Timer { id: doneFeedback; interval: 1300 }
     Loader {
         id: panelLoader
         active: true
@@ -100,7 +62,7 @@ BarWidget {
         foreground: root.dictationState === "error" ? Commons.Color.urgent
             : root.dictationState === "recording" ? Commons.Color.pick("coe.recording", "#e5c07b")
             : root.dictationState === "offline" ? Commons.Color.muted : Commons.Color.bar.text
-        text: root.dictationState === "processing" ? "󰔟" : doneFeedback.running ? "󰄬" : root.dictationState === "offline" ? "󰍭" : "󰍬"
+        text: root.dictationState === "processing" ? "󰔟" : root.service && root.service.completedFeedback ? "󰄬" : root.dictationState === "offline" ? "󰍭" : "󰍬"
         tooltipText: "Coe 语音输入 · " + ({idle:"已就绪",recording:"正在录音",processing:"正在识别/纠错",completed:"已完成",error:"发生错误",offline:"服务未连接"}[root.dictationState] || root.dictationState)
         textRotation: root.dictationState === "processing" ? spinner.angle : 0
         onPressed: function(code) { if (code === Qt.LeftButton) root.toggle() }

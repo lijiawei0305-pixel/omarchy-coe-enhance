@@ -15,6 +15,7 @@ root = (
 manifest = json.loads((root / "manifest.json").read_text())
 widget = root / manifest["entryPoints"]["barWidget"]
 panel = widget.parent.parent / "CoePanel.qml"
+service = root / manifest["entryPoints"]["service"]
 with tempfile.TemporaryDirectory(prefix="coe-qmllint-") as tmp:
     (Path(tmp) / "qs").symlink_to("/usr/share/omarchy/shell", target_is_directory=True)
     # Installed Color/Style expose QObject properties and Loader.item is dynamic.
@@ -33,6 +34,7 @@ with tempfile.TemporaryDirectory(prefix="coe-qmllint-") as tmp:
             "disable",
             str(widget),
             str(panel),
+            str(service),
         ]
     )
     raise SystemExit(result.returncode)
