@@ -38,8 +38,8 @@ Go 不在 PATH 时，可向安装器传入 `--go /path/to/go`。右 Alt 同时�
 在你的 Omarchy 图形会话内运行。先阅读安装器；请把源码放在插件目录**之外**：
 
 ```bash
-git clone https://github.com/lijiawei0305-pixel/omarchy-coe-enhance.git
-cd omarchy-coe-enhance
+git clone https://github.com/lijiawei0305-pixel/omarchy-coe-voice-typing.git
+cd omarchy-coe-voice-typing
 python3 scripts/install.py
 ```
 
